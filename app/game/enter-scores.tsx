@@ -11,6 +11,8 @@ import { SPINNER_TILE_VALUE } from "@/lib/gameLogic";
 import { RoundScore } from "@/lib/types";
 import { colors, useTheme } from "@/lib/theme";
 
+const isWeb = Platform.OS === "web";
+
 export default function EnterScoresScreen() {
   const { game, submitRound } = useGame();
   const { t } = useTheme();
@@ -43,22 +45,20 @@ export default function EnterScoresScreen() {
     }));
     await submitRound(scores);
     if (isLastRound) {
-      if (settings.hapticEnabled && Platform.OS !== "web") await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (settings.hapticEnabled && !isWeb) await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/results");
     } else {
-      if (settings.hapticEnabled && Platform.OS !== "web") await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (settings.hapticEnabled && !isWeb) await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       router.back();
     }
   }
 
-  const roundLabel = s.roundLabel(game.currentRound, game.totalRounds - game.currentRound + 1);
-
-  const Wrapper = Platform.OS === "web" ? View : KeyboardAvoidingView;
-  const wrapperProps = Platform.OS === "web" ? {} : { behavior: Platform.OS === "ios" ? "padding" : "height" } as any;
-
-  return (
-    <Wrapper style={[st.flex, { backgroundColor: t.bg }]} {...wrapperProps}>
-      <ScrollView contentContainerStyle={st.scroll} keyboardShouldPersistTaps="handled">
+  const content = (
+    <ScrollView
+      contentContainerStyle={[st.scroll, isWeb && st.scrollWeb]}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={isWeb ? st.webInner : undefined}>
         {/* Round label */}
         <View style={st.roundBanner}>
           <Text style={st.roundTitle}>{s.roundLabel(game.currentRound, game.totalRounds - game.currentRound)}</Text>
@@ -76,19 +76,22 @@ export default function EnterScoresScreen() {
           <View key={player.id} style={[st.card, { backgroundColor: t.card }]}>
             <Text style={[st.playerName, { color: t.text }]}>{player.name}</Text>
             <View style={st.inputRow}>
-              <TextInput
-                style={[st.input, { backgroundColor: t.cardAlt, color: t.text }]}
-                placeholder="0"
-                placeholderTextColor={t.muted}
-                value={inputs[player.id]}
-                onChangeText={(v) => updateInput(player.id, v)}
-                keyboardType="number-pad"
-                returnKeyType="done"
-              />
+              {/* Wrap in View so flex:1 works reliably on web */}
+              <View style={st.inputWrap}>
+                <TextInput
+                  style={[st.input, { backgroundColor: t.cardAlt, color: t.text }]}
+                  placeholder="0"
+                  placeholderTextColor={t.muted}
+                  value={inputs[player.id]}
+                  onChangeText={(v) => updateInput(player.id, v)}
+                  keyboardType="number-pad"
+                  returnKeyType="done"
+                />
+              </View>
               <TouchableOpacity
                 style={st.wonBtn}
                 onPress={() => {
-                  if (settings.hapticEnabled && Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (settings.hapticEnabled && !isWeb) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setInputs((prev) => ({ ...prev, [player.id]: "0" }));
                 }}
               >
@@ -101,14 +104,29 @@ export default function EnterScoresScreen() {
         <TouchableOpacity style={st.confirmBtn} onPress={handleSubmit} activeOpacity={0.8}>
           <Text style={st.confirmBtnText}>{s.confirmPoints}</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </Wrapper>
+      </View>
+    </ScrollView>
+  );
+
+  if (isWeb) {
+    return <View style={[st.flex, { backgroundColor: t.bg }]}>{content}</View>;
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={[st.flex, { backgroundColor: t.bg }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      {content}
+    </KeyboardAvoidingView>
   );
 }
 
 const st = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { padding: 20, gap: 14, paddingBottom: 40 },
+  scrollWeb: { flexGrow: 1 },
+  webInner: { width: "100%", maxWidth: 600, alignSelf: "center" as const, gap: 14 },
   roundBanner: { backgroundColor: colors.amber, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 18, alignItems: "center" },
   roundTitle: { color: "#1e293b", fontSize: 20, fontWeight: "900" },
   roundSub: { color: "#334155", fontSize: 13, marginTop: 4, opacity: 0.8 },
@@ -116,9 +134,10 @@ const st = StyleSheet.create({
   hintText: { flex: 1, fontSize: 14, lineHeight: 22 },
   card: { borderRadius: 18, padding: 16 },
   playerName: { fontSize: 18, fontWeight: "600", marginBottom: 12 },
-  inputRow: { flexDirection: "row", gap: 10, alignItems: "center" },
-  input: { flex: 1, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16, fontSize: 26, fontWeight: "700", textAlign: "center" },
-  wonBtn: { backgroundColor: colors.greenLight, borderWidth: 1, borderColor: "rgba(34,197,94,0.3)", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16, minWidth: 90, alignItems: "center" },
+  inputRow: { flexDirection: "row", gap: 10, alignItems: "stretch" },
+  inputWrap: { flex: 1 },
+  input: { borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16, fontSize: 26, fontWeight: "700", textAlign: "center", width: "100%" },
+  wonBtn: { backgroundColor: colors.greenLight, borderWidth: 1, borderColor: "rgba(34,197,94,0.3)", borderRadius: 14, paddingHorizontal: 20, paddingVertical: 16, justifyContent: "center", alignItems: "center" },
   confirmBtn: { backgroundColor: colors.amber, borderRadius: 18, paddingVertical: 18, alignItems: "center", marginTop: 8 },
   confirmBtnText: { color: "#1e293b", fontSize: 20, fontWeight: "700" },
 });
