@@ -1,28 +1,60 @@
 import { router } from "expo-router";
-import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View, Alert } from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { useSettings } from "@/lib/SettingsContext";
 import { colors, useTheme } from "@/lib/theme";
-import { Language, RoundCount, ThemePref } from "@/lib/settings";
+import { Language, RoundCount } from "@/lib/settings";
 
 const APP_VERSION = "1.0";
 
+function InlinePicker<T extends string | number>({
+  options, value, onChange, t,
+}: {
+  options: { label: string; value: T }[];
+  value: T;
+  onChange: (v: T) => void;
+  t: ReturnType<typeof useTheme>["t"];
+}) {
+  return (
+    <View style={ip.row}>
+      {options.map((opt, i) => {
+        const active = opt.value === value;
+        return (
+          <TouchableOpacity
+            key={String(opt.value)}
+            onPress={() => onChange(opt.value)}
+            style={[
+              ip.btn,
+              i === 0 && ip.btnFirst,
+              i === options.length - 1 && ip.btnLast,
+              active ? { backgroundColor: colors.amber } : { backgroundColor: t.cardAlt, borderColor: t.border },
+            ]}
+            activeOpacity={0.7}
+          >
+            <Text style={[ip.label, { color: active ? "#1e293b" : t.text }]}>{opt.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+const ip = StyleSheet.create({
+  row: { flexDirection: "row", marginTop: 10, marginBottom: 4 },
+  btn: { flex: 1, paddingVertical: 10, alignItems: "center", borderWidth: 1, borderColor: colors.amber },
+  btnFirst: { borderTopLeftRadius: 10, borderBottomLeftRadius: 10 },
+  btnLast: { borderTopRightRadius: 10, borderBottomRightRadius: 10 },
+  label: { fontSize: 14, fontWeight: "600" },
+});
+
 export default function SettingsScreen() {
-  const { t, isDark } = useTheme();
+  const { t } = useTheme();
   const { settings, s, updateSetting } = useSettings();
+  const isWeb = Platform.OS === "web";
 
   function pickLanguage() {
     Alert.alert(s.languageLabel, undefined, [
       { text: s.langEs, onPress: () => updateSetting("language", "es" as Language) },
       { text: s.langEn, onPress: () => updateSetting("language", "en" as Language) },
-      { text: s.cancel, style: "cancel" },
-    ]);
-  }
-
-  function pickTheme() {
-    Alert.alert(s.themeLabel, undefined, [
-      { text: s.themeAuto, onPress: () => updateSetting("theme", "auto" as ThemePref) },
-      { text: s.themeLight, onPress: () => updateSetting("theme", "light" as ThemePref) },
-      { text: s.themeDark, onPress: () => updateSetting("theme", "dark" as ThemePref) },
       { text: s.cancel, style: "cancel" },
     ]);
   }
@@ -36,7 +68,6 @@ export default function SettingsScreen() {
     ]);
   }
 
-  const themeValue = settings.theme === "auto" ? s.themeAuto : settings.theme === "light" ? s.themeLight : s.themeDark;
   const langValue = settings.language === "es" ? s.langEs : s.langEn;
   const roundsValue = s.roundsHint(settings.rounds ?? 10);
 
@@ -49,35 +80,55 @@ export default function SettingsScreen() {
         <View style={[st.group, { backgroundColor: t.card, borderColor: t.border }]}>
 
           {/* Language */}
-          <TouchableOpacity style={st.row} onPress={pickLanguage} activeOpacity={0.7}>
-            <Text style={[st.rowLabel, { color: t.text }]}>{s.languageLabel}</Text>
-            <View style={st.rowRight}>
-              <Text style={[st.rowValue, { color: t.muted }]}>{langValue}</Text>
-              <Text style={[st.chevron, { color: t.muted }]}>›</Text>
+          {isWeb ? (
+            <View style={[st.row, { flexDirection: "column", alignItems: "flex-start" }]}>
+              <Text style={[st.rowLabel, { color: t.text }]}>{s.languageLabel}</Text>
+              <InlinePicker
+                t={t}
+                value={settings.language}
+                onChange={(v) => updateSetting("language", v as Language)}
+                options={[
+                  { label: s.langEs, value: "es" as Language },
+                  { label: s.langEn, value: "en" as Language },
+                ]}
+              />
             </View>
-          </TouchableOpacity>
-
-          <View style={[st.divider, { backgroundColor: t.border }]} />
-
-          {/* Theme */}
-          <TouchableOpacity style={st.row} onPress={pickTheme} activeOpacity={0.7}>
-            <Text style={[st.rowLabel, { color: t.text }]}>{s.themeLabel}</Text>
-            <View style={st.rowRight}>
-              <Text style={[st.rowValue, { color: t.muted }]}>{themeValue}</Text>
-              <Text style={[st.chevron, { color: t.muted }]}>›</Text>
-            </View>
-          </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={st.row} onPress={pickLanguage} activeOpacity={0.7}>
+              <Text style={[st.rowLabel, { color: t.text }]}>{s.languageLabel}</Text>
+              <View style={st.rowRight}>
+                <Text style={[st.rowValue, { color: t.muted }]}>{langValue}</Text>
+                <Text style={[st.chevron, { color: t.muted }]}>›</Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
           <View style={[st.divider, { backgroundColor: t.border }]} />
 
           {/* Rounds */}
-          <TouchableOpacity style={st.row} onPress={pickRounds} activeOpacity={0.7}>
-            <Text style={[st.rowLabel, { color: t.text }]}>{s.roundsLabel}</Text>
-            <View style={st.rowRight}>
-              <Text style={[st.rowValue, { color: t.muted }]}>{roundsValue}</Text>
-              <Text style={[st.chevron, { color: t.muted }]}>›</Text>
+          {isWeb ? (
+            <View style={[st.row, { flexDirection: "column", alignItems: "flex-start" }]}>
+              <Text style={[st.rowLabel, { color: t.text }]}>{s.roundsLabel}</Text>
+              <InlinePicker
+                t={t}
+                value={settings.rounds ?? 10}
+                onChange={(v) => updateSetting("rounds", v as RoundCount)}
+                options={[
+                  { label: s.rounds5, value: 5 as RoundCount },
+                  { label: s.rounds7, value: 7 as RoundCount },
+                  { label: s.rounds10, value: 10 as RoundCount },
+                ]}
+              />
             </View>
-          </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={st.row} onPress={pickRounds} activeOpacity={0.7}>
+              <Text style={[st.rowLabel, { color: t.text }]}>{s.roundsLabel}</Text>
+              <View style={st.rowRight}>
+                <Text style={[st.rowValue, { color: t.muted }]}>{roundsValue}</Text>
+                <Text style={[st.chevron, { color: t.muted }]}>›</Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
           <View style={[st.divider, { backgroundColor: t.border }]} />
 
@@ -95,28 +146,30 @@ export default function SettingsScreen() {
             />
           </View>
 
-          <View style={[st.divider, { backgroundColor: t.border }]} />
-
-          {/* Haptics */}
-          <View style={st.row}>
-            <View style={st.rowLabelBlock}>
-              <Text style={[st.rowLabel, { color: t.text }]}>{s.hapticsLabel}</Text>
-              <Text style={[st.rowHint, { color: t.muted }]}>{s.hapticsHint}</Text>
-            </View>
-            <Switch
-              value={settings.hapticEnabled}
-              onValueChange={(v) => updateSetting("hapticEnabled", v)}
-              trackColor={{ false: t.border, true: colors.amber }}
-              thumbColor="#fff"
-            />
-          </View>
+          {!isWeb && (
+            <>
+              <View style={[st.divider, { backgroundColor: t.border }]} />
+              {/* Haptics — only on native */}
+              <View style={st.row}>
+                <View style={st.rowLabelBlock}>
+                  <Text style={[st.rowLabel, { color: t.text }]}>{s.hapticsLabel}</Text>
+                  <Text style={[st.rowHint, { color: t.muted }]}>{s.hapticsHint}</Text>
+                </View>
+                <Switch
+                  value={settings.hapticEnabled}
+                  onValueChange={(v) => updateSetting("hapticEnabled", v)}
+                  trackColor={{ false: t.border, true: colors.amber }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </>
+          )}
         </View>
 
         {/* Information */}
         <Text style={[st.sectionTitle, { color: t.muted }]}>{s.informationSection.toUpperCase()}</Text>
         <View style={[st.group, { backgroundColor: t.card, borderColor: t.border }]}>
 
-          {/* Version */}
           <View style={st.row}>
             <Text style={[st.rowLabel, { color: t.text }]}>{s.versionLabel}</Text>
             <Text style={[st.rowValue, { color: t.muted }]}>{APP_VERSION}</Text>
@@ -124,7 +177,6 @@ export default function SettingsScreen() {
 
           <View style={[st.divider, { backgroundColor: t.border }]} />
 
-          {/* Rules link */}
           <TouchableOpacity style={st.row} onPress={() => router.push("/rules")} activeOpacity={0.7}>
             <Text style={[st.rowLabel, { color: t.text }]}>{s.rulesLinkLabel}</Text>
             <Text style={[st.chevron, { color: t.muted }]}>›</Text>

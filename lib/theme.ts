@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { useColorScheme } from "react-native";
+import { Platform, useColorScheme } from "react-native";
 import { SettingsContext } from "./SettingsContext";
 
 export const colors = {
@@ -35,7 +35,9 @@ export function useTheme() {
   const scheme = useColorScheme();
   const ctx = useContext(SettingsContext);
   const themePref = ctx?.settings?.theme ?? "auto";
-  const isDark = themePref === "auto" ? scheme === "dark" : themePref === "dark";
+  const isDark = Platform.OS === "web"
+    ? false
+    : themePref === "auto" ? scheme === "dark" : themePref === "dark";
   const t = isDark ? colors.dark : colors.light;
   return { isDark, t };
 }

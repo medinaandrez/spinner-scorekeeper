@@ -53,8 +53,11 @@ export default function EnterScoresScreen() {
 
   const roundLabel = s.roundLabel(game.currentRound, game.totalRounds - game.currentRound + 1);
 
+  const Wrapper = Platform.OS === "web" ? View : KeyboardAvoidingView;
+  const wrapperProps = Platform.OS === "web" ? {} : { behavior: Platform.OS === "ios" ? "padding" : "height" } as any;
+
   return (
-    <KeyboardAvoidingView style={[st.flex, { backgroundColor: t.bg }]} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <Wrapper style={[st.flex, { backgroundColor: t.bg }]} {...wrapperProps}>
       <ScrollView contentContainerStyle={st.scroll} keyboardShouldPersistTaps="handled">
         {/* Round label */}
         <View style={st.roundBanner}>
@@ -99,7 +102,7 @@ export default function EnterScoresScreen() {
           <Text style={st.confirmBtnText}>{s.confirmPoints}</Text>
         </TouchableOpacity>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </Wrapper>
   );
 }
 
@@ -115,7 +118,7 @@ const st = StyleSheet.create({
   playerName: { fontSize: 18, fontWeight: "600", marginBottom: 12 },
   inputRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   input: { flex: 1, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16, fontSize: 26, fontWeight: "700", textAlign: "center" },
-  wonBtn: { backgroundColor: colors.greenLight, borderWidth: 1, borderColor: "rgba(34,197,94,0.3)", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16 },
+  wonBtn: { backgroundColor: colors.greenLight, borderWidth: 1, borderColor: "rgba(34,197,94,0.3)", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 16, minWidth: 90, alignItems: "center" },
   confirmBtn: { backgroundColor: colors.amber, borderRadius: 18, paddingVertical: 18, alignItems: "center", marginTop: 8 },
   confirmBtnText: { color: "#1e293b", fontSize: 20, fontWeight: "700" },
 });

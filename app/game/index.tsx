@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useGame } from "@/lib/GameContext";
 import { useSettings } from "@/lib/SettingsContext";
 import {
@@ -31,6 +31,10 @@ export default function ScoreboardScreen() {
   function confirmUndo() {
     const lastRound = game.rounds[game.rounds.length - 1];
     if (!lastRound) return;
+    if (Platform.OS === "web") {
+      if (window.confirm(s.confirmUndoMsg(lastRound.roundNumber))) undoLastRound();
+      return;
+    }
     Alert.alert(s.confirmUndoTitle, s.confirmUndoMsg(lastRound.roundNumber), [
       { text: s.cancel, style: "cancel" },
       { text: s.undo, style: "destructive", onPress: async () => { await undoLastRound(); } },
@@ -38,6 +42,10 @@ export default function ScoreboardScreen() {
   }
 
   function confirmFinish() {
+    if (Platform.OS === "web") {
+      if (window.confirm(s.confirmFinishMsg)) finishGame();
+      return;
+    }
     Alert.alert(s.confirmFinishTitle, s.confirmFinishMsg, [
       { text: s.cancel, style: "cancel" },
       { text: s.finish, style: "destructive", onPress: async () => { await finishGame(); } },
@@ -45,6 +53,10 @@ export default function ScoreboardScreen() {
   }
 
   function confirmAbandon() {
+    if (Platform.OS === "web") {
+      if (window.confirm(s.confirmAbandonMsg)) { abandonGame(); router.replace("/"); }
+      return;
+    }
     Alert.alert(s.confirmAbandonTitle, s.confirmAbandonMsg, [
       { text: s.cancel, style: "cancel" },
       { text: s.exit, style: "destructive", onPress: async () => { await abandonGame(); router.replace("/"); } },
