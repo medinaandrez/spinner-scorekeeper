@@ -19,6 +19,7 @@ import {
   cancelGameReminder,
   scheduleGameReminder,
 } from "./notifications";
+import { updateWidget } from "./widgetData";
 
 interface GameContextValue {
   game: Game | null;
@@ -41,6 +42,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     loadCurrentGame()
       .then((saved) => {
         if (saved) setGame(saved);
+        updateWidget(saved ?? null);
       })
       .catch(() => {
         // storage unavailable — start fresh
@@ -54,6 +56,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const newGame = createGame(playerNames, totalRounds);
     setGame(newGame);
     await saveCurrentGame(newGame);
+    updateWidget(newGame);
     scheduleGameReminder();
   }, []);
 
@@ -63,6 +66,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const updated = addRound(game, scores);
       setGame(updated);
       await saveCurrentGame(updated);
+      updateWidget(updated);
     },
     [game]
   );
@@ -81,6 +85,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const updated = { ...game, rounds: updatedRounds };
     setGame(updated);
     await saveCurrentGame(updated);
+    updateWidget(updated);
   }, [game]);
 
   const undoLastRound = useCallback(async () => {
@@ -94,6 +99,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
     setGame(updated);
     await saveCurrentGame(updated);
+    updateWidget(updated);
   }, [game]);
 
   const finishGame = useCallback(async () => {
@@ -105,12 +111,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
     setGame(finished);
     await saveCurrentGame(finished);
+    updateWidget(finished);
     cancelGameReminder();
   }, [game]);
 
   const abandonGame = useCallback(async () => {
     setGame(null);
     await clearCurrentGame();
+    updateWidget(null);
     cancelGameReminder();
   }, []);
 

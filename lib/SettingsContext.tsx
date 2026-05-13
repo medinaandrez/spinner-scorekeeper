@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { AppSettings, DEFAULT_SETTINGS, loadSettings, saveSettings } from "./settings";
 import { getStrings, Strings } from "./i18n";
+import { setWidgetLanguage } from "./widgetData";
 
 interface SettingsContextValue {
   settings: AppSettings;
@@ -18,6 +19,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     loadSettings().then((s) => {
       setSettings(s);
+      setWidgetLanguage(s.language);
       setLoading(false);
     });
   }, []);
@@ -29,6 +31,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const updated = { ...settings, [key]: value };
     setSettings(updated);
     await saveSettings(updated);
+    if (key === "language") setWidgetLanguage(value as AppSettings["language"]);
   }, [settings]);
 
   const s = getStrings(settings.language);
